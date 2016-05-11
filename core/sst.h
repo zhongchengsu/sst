@@ -22,8 +22,9 @@
 
 #define SST_MAX_PRIO                            8 
 #define TICK_ISR_PRIO                           0xFF
-#define INTER_PRIO                              0x08
-#define IO_PRIO                                 0x04
+#define INTER_PRIO                              0x07
+#define IO2_PRIO                                0x06
+#define IO1_PRIO                                0x05
 
 #define CODE                                    
 
@@ -57,7 +58,6 @@ typedef struct sst_event_tag
 
 typedef void (*sst_task)(sst_event e);
 typedef void (*sst_idle)();
-
 
 void sst_task_create(
                      sst_task task, 

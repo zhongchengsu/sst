@@ -111,7 +111,6 @@ sst_bool_t sst_post(sst_uint8_t prio, sst_signal sig, sst_param par)
 {
     task_cb *tcb = &g_task_cb[prio - 1];
     SST_INT_LOCK();
-    printf("%d |%d\n", tcb->nUsed, tcb->end);
     if (tcb->nUsed < tcb->end) {
         tcb->queue[tcb->head].sig = sig;	/* insert the event at the head */
         tcb->queue[tcb->head].par = par;
@@ -120,14 +119,12 @@ sst_bool_t sst_post(sst_uint8_t prio, sst_signal sig, sst_param par)
         }
         if ((++tcb->nUsed) == (sst_uint8_t)1) {       	/* the first event? */
             sst_ready_set |= tcb->mask;   	/* insert task to the ready set */
-        printf("1111\n");
             sst_schedule();            	/* check for synchronous preemption */
         }
         SST_INT_UNLOCK();
         return (sst_bool_t)1;                  /* event successfully posted */
     }
     else {
-        printf("sdfasdfs");
         SST_INT_UNLOCK();
         return (sst_bool_t)0;           /* queue full, event posting failed */
     }
@@ -161,10 +158,9 @@ void sst_schedule(void)
     sst_uint8_t p;                       /* the new priority */
                      
     /* is the new priority higher than the initial? */
+    //printf("%d | %d ", sst_curr_prio, sst_ready_set);
     while ((p = log2lkup[sst_ready_set]) > pin) 
 	{
-        printf("G ");
-        fflush(stdout); 
         task_cb *tcb  = &g_task_cb[p - 1];
                                           			
         sst_event e = tcb->queue[tcb->tail];/* get the event out of the queue */

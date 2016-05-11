@@ -8,58 +8,83 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#define FIFO "/tmp/sstfifo"
+#include <signal.h>
+#define FIFO "/tmp/sstfifo2"
 
-void virtual_interupt_thread()
+char buf_r[100];
+int fd;
+int nread;
+
+void virtual_interupt()
 {
-  char buf_r[100];
-  int fd;
-  int nread;
+
   pid_t fpid;
   int count=0;
   
-  fpid = fork();
+  if((mkfifo(FIFO,O_CREAT|O_EXCL)<0)&&(errno!=EEXIST))
+    printf("cannot create fifoserver\n");
 
-  if (fpid < 0)
+  memset(buf_r,0,sizeof(buf_r));
+  fd=open(FIFO,O_RDONLY|O_NONBLOCK,0);
+  if(fd==-1)
   {
-     printf("Error init interupt!\n");
+    perror("open");
+    exit(1);
   }
-  else if (fpid == 0)
-  {
-    if((mkfifo(FIFO,O_CREAT|O_EXCL)<0)&&(errno!=EEXIST))
-      printf("cannot create fifoserver\n");
+}
+
+
+void idle_task()
+{
+    int nread;
+    printf("\033[1;32;40mSST  \033[0m");
 
     memset(buf_r,0,sizeof(buf_r));
-    fd=open(FIFO,O_RDONLY|O_NONBLOCK,0);
-    if(fd==-1)
+    if((nread=read(fd,buf_r,100))>0)
     {
-      perror("open");
-      exit(1);
-    }
-
-    while(1)
-    {
-      memset(buf_r,0,sizeof(buf_r));
-      if((nread=read(fd,buf_r,100))>0){
         if(errno==EAGAIN)
         {
         	 printf("no data yet\n");
         }  
-        printf("sst_post %s ", buf_r); 
-        sst_post(INTER_PRIO, 0, (sst_param)buf_r);  
-      }
-      sleep(1);
-      fflush(stdout);
+        //printf("sst_post %s ", buf_r); 
+        sst_post(INTER_PRIO, 0, (sst_param)"F");  
     }
-    pause();
-    unlink(FIFO);
+    fflush(stdout);
+    usleep(1000000);
+}
+
+void sigroutine(int dunno)
+
+{
+  switch (dunno)
+
+  {
+    case 1:
+      printf("Get a signal -- SIGHUP ");
+      break;
+    case 2:
+      //printf("Get a signal -- SIGINT ");
+      sst_post(INTER_PRIO, 0, (sst_param)"C");
+      break;
+    case 3:
+      printf("Get a signal -- SIGQU99v ");
+      break;
+    default:
+      printf("%d  ", dunno);
   }
+  return;
 }
 
 void main(void)
-{    
-    virtual_interupt_thread();
+{   
+    signal(SIGHUP, sigroutine); //* 下面设置三个信号的处理方法
+    signal(SIGINT, sigroutine);
+    signal(SIGQUIT, sigroutine);
+    virtual_interupt();
+    sst_idle_register(idle_task);
     task_init();
-    sst_run();     
+    sst_run();  
+    pause();
+    unlink(FIFO);   
 }
 
